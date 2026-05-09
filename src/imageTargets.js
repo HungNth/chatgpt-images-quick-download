@@ -220,7 +220,7 @@
   }
 
   function isNativeOpenImageControl(control) {
-    return /^open image:/i.test(getControlLabel(control));
+    return /^(open image:|open image in full view$)/i.test(getControlLabel(control));
   }
 
   function isNativeSaveControl(control) {
@@ -307,6 +307,13 @@
     return true;
   }
 
+  function isSupportedChatGPTSurface(locationLike = {}) {
+    const hostname = String(locationLike.hostname || "");
+    const pathname = String(locationLike.pathname || "");
+
+    return hostname === "chatgpt.com" && (pathname.startsWith("/images") || pathname.startsWith("/c/"));
+  }
+
   return {
     buildDownloadFilename,
     chooseBestDownloadUrl,
@@ -317,6 +324,7 @@
     isNativeCloseViewerControl,
     isNativeOpenImageControl,
     isNativeSaveControl,
+    isSupportedChatGPTSurface,
     isLikelyTargetImage,
     isPossiblyDownloadableImageUrl,
     normalizeCandidateUrl,

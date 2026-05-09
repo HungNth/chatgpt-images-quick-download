@@ -15,8 +15,8 @@
   let latestPath = location.pathname;
   let toastTimer;
 
-  function isImagesPage() {
-    return location.hostname === "chatgpt.com" && location.pathname.startsWith("/images");
+  function isSupportedPage() {
+    return helpers.isSupportedChatGPTSurface(location);
   }
 
   function queueScan() {
@@ -38,7 +38,7 @@
   }
 
   function scanImages() {
-    if (!isImagesPage()) return;
+    if (!isSupportedPage()) return;
 
     const root = document.querySelector("main") || document.querySelector('[role="main"]') || document.body;
     const images = Array.from(root.querySelectorAll("img:not([" + DECORATED_ATTR + "])"));
@@ -77,6 +77,11 @@
     if (!host) return;
 
     image.setAttribute(DECORATED_ATTR, "true");
+    const hasExistingButton = Array.from(host.children).some((child) => child.classList?.contains("cgqid-button"));
+    if (host.hasAttribute(HOST_ATTR) || hasExistingButton) {
+      return;
+    }
+
     host.setAttribute(HOST_ATTR, "true");
     host.classList.add("cgqid-host");
 
@@ -279,8 +284,10 @@
 
   function getStatus() {
     const all = Array.from(document.querySelectorAll(`img[${DECORATED_ATTR}="true"]`));
+    const isSupported = isSupportedPage();
     return {
-      isImagesPage: isImagesPage(),
+      isImagesPage: isSupported,
+      isSupportedPage: isSupported,
       decoratedCount: all.length,
       visibleCount: getVisibleTargetImages().length
     };

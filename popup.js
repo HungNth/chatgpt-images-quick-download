@@ -14,12 +14,12 @@ async function sendToActiveTab(message) {
 }
 
 function renderStatus(status) {
-  const onImagesPage = Boolean(status?.isImagesPage);
-  downloadVisibleButton.disabled = !onImagesPage || !status.visibleCount;
-  rescanButton.disabled = !onImagesPage;
+  const onSupportedPage = Boolean(status?.isSupportedPage || status?.isImagesPage);
+  downloadVisibleButton.disabled = !onSupportedPage || !status.visibleCount;
+  rescanButton.disabled = !onSupportedPage;
 
-  if (!onImagesPage) {
-    statusEl.textContent = "Open https://chatgpt.com/images first.";
+  if (!onSupportedPage) {
+    statusEl.textContent = "Open ChatGPT Images or a ChatGPT conversation first.";
     return;
   }
 
@@ -30,7 +30,7 @@ async function refresh() {
   try {
     renderStatus(await sendToActiveTab({ type: "CGQID_GET_STATUS" }));
   } catch {
-    renderStatus({ isImagesPage: false });
+    renderStatus({ isSupportedPage: false });
   }
 }
 

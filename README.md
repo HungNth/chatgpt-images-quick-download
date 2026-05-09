@@ -4,19 +4,20 @@
   <img src="docs/logo.png" alt="ChatGPT Images Quick Download logo" width="140">
 </p>
 
-Small unpacked Chrome extension for `https://chatgpt.com/images`.
+Small unpacked Chrome extension for ChatGPT Images and generated images inside normal ChatGPT chats.
 
-It adds a tiny transparent download icon on each gallery-sized image tile. Hover an image, click the icon, and the extension automatically uses ChatGPT's native full-size Save flow so you do not have to open each image and click inside it by hand.
+It adds a tiny transparent download icon on each generated image. Hover an image, click the icon, and the extension automatically uses ChatGPT's native full-size Save flow so you do not have to open each image and click inside it by hand.
 
 ## Why
 
-ChatGPT Images shows many generated images in a gallery, but saving full-size files normally takes extra clicks per image. This extension adds the missing one-click affordance while staying out of the way of ChatGPT's native hover controls.
+ChatGPT shows generated images in both the Images gallery and normal chat threads, but saving full-size files normally takes extra clicks per image. This extension adds the missing one-click affordance while staying out of the way of ChatGPT's native hover controls.
 
 ## UX
 
 - Per-image floating download button, top-right of each target image.
 - Does not overlap ChatGPT's native bottom hover controls such as `Edit` and share/open.
 - Transparent by default, stronger on hover/focus, so the gallery stays clean.
+- Works on `https://chatgpt.com/images` and `https://chatgpt.com/c/...` conversation pages.
 - Uses ChatGPT's native fullscreen `Save` button when available, which downloads the full-size PNG into Chrome's normal Downloads location.
 - Works with infinite scroll by rescanning new images automatically.
 - Uses the best `srcset` candidate when the page exposes multiple image sizes.

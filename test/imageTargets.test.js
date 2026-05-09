@@ -11,6 +11,7 @@ const {
   isNativeCloseViewerControl,
   isNativeOpenImageControl,
   isNativeSaveControl,
+  isSupportedChatGPTSurface,
   isPossiblyDownloadableImageUrl,
   isLikelyTargetImage,
   rankDownloadUrls,
@@ -119,10 +120,19 @@ test("native ChatGPT image controls are identified by accessible labels", () => 
 
   assert.equal(getControlLabel(control({ ariaLabel: "Open image: Cozy night in a rustic corner" })), "Open image: Cozy night in a rustic corner");
   assert.equal(isNativeOpenImageControl(control({ ariaLabel: "Open image: Cozy night in a rustic corner" })), true);
+  assert.equal(isNativeOpenImageControl(control({ ariaLabel: "Open image in full view" })), true);
   assert.equal(isNativeSaveControl(control({ ariaLabel: "Save" })), true);
   assert.equal(isNativeSaveControl(control({ textContent: "Save" })), true);
   assert.equal(isNativeCloseViewerControl(control({ ariaLabel: "Close fullscreen view" })), true);
   assert.equal(isNativeSaveControl(control({ ariaLabel: "Download this image" })), false);
+});
+
+test("supported ChatGPT surfaces include images and conversation pages only", () => {
+  assert.equal(isSupportedChatGPTSurface({ hostname: "chatgpt.com", pathname: "/images" }), true);
+  assert.equal(isSupportedChatGPTSurface({ hostname: "chatgpt.com", pathname: "/images/" }), true);
+  assert.equal(isSupportedChatGPTSurface({ hostname: "chatgpt.com", pathname: "/c/69ff1bf0-5948-83a6-9056-1afd5256decf" }), true);
+  assert.equal(isSupportedChatGPTSurface({ hostname: "chatgpt.com", pathname: "/" }), false);
+  assert.equal(isSupportedChatGPTSurface({ hostname: "example.com", pathname: "/c/69ff1bf0" }), false);
 });
 
 test("getImageExtension handles common urls, data urls, blobs, and unknowns", () => {

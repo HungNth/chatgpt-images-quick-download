@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0 - 2026-05-09
+
+- Added hover download buttons for generated images inside normal ChatGPT conversation pages (`/c/...`), not only the Images gallery.
+- Recognized ChatGPT's chat-thread `Open image in full view` control so one-click downloads can still use the native full-size Save flow.
+- Kept one overlay per generated image host in chat threads and updated popup status text for both supported surfaces.
+
 ## 0.2.0 - 2026-05-09
 
 - Added the generated public app logo and refreshed Chrome extension icon sizes.
