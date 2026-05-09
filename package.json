@@ -9,7 +9,7 @@
   },
   "scripts": {
     "check": "npm test && npm run validate && npm run visual-smoke && npm run e2e:extension && npm run package",
-    "e2e:extension": "node scripts/e2e-extension-smoke.js",
+    "e2e:extension": "node --experimental-websocket scripts/e2e-extension-smoke.js",
     "package": "node scripts/package-extension.js",
     "test": "node --test",
     "validate": "node scripts/validate-extension.js",
