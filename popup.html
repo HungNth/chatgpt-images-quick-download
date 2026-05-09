@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ChatGPT Images Quick Download</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="panel">
+      <header>
+        <div class="mark" aria-hidden="true"></div>
+        <div>
+          <h1>Quick Download</h1>
+          <p id="status">Checking this tab...</p>
+        </div>
+      </header>
+
+      <div class="actions">
+        <button id="downloadVisible" type="button">Download visible</button>
+        <button id="rescan" type="button" class="secondary">Rescan</button>
+      </div>
+
+      <p class="hint">Hover an image tile on ChatGPT Images, then click the small transparent download icon.</p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

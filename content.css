@@ -1,0 +1,105 @@
+.cgqid-host {
+  position: relative !important;
+}
+
+.cgqid-button {
+  align-items: center;
+  appearance: none;
+  background: rgba(8, 10, 14, 0.3);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 999px;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.22);
+  color: rgba(255, 255, 255, 0.96);
+  cursor: pointer;
+  display: inline-flex;
+  height: 30px;
+  justify-content: center;
+  opacity: 0.24;
+  padding: 0;
+  pointer-events: auto;
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  transform: translateY(-2px) scale(0.96);
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease;
+  width: 30px;
+  z-index: 2147483000;
+}
+
+.cgqid-button:hover,
+.cgqid-button:focus-visible,
+.cgqid-host:hover > .cgqid-button,
+.cgqid-host:focus-within > .cgqid-button {
+  background: rgba(8, 10, 14, 0.58);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.34);
+  opacity: 1;
+  outline: none;
+  transform: translateY(0) scale(1);
+}
+
+.cgqid-button:focus-visible {
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+.cgqid-button svg {
+  height: 15px;
+  width: 15px;
+}
+
+.cgqid-button.cgqid-busy {
+  opacity: 1;
+  pointer-events: none;
+}
+
+.cgqid-button.cgqid-busy svg {
+  animation: cgqid-pulse 760ms ease-in-out infinite alternate;
+}
+
+.cgqid-toast {
+  background: rgba(10, 12, 16, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  bottom: 22px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.32);
+  color: white;
+  font: 500 13px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  left: 50%;
+  max-width: min(360px, calc(100vw - 40px));
+  opacity: 0;
+  padding: 10px 14px;
+  pointer-events: none;
+  position: fixed;
+  text-align: center;
+  transform: translate(-50%, 8px);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+  z-index: 2147483001;
+}
+
+.cgqid-toast.cgqid-toast-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+@keyframes cgqid-pulse {
+  from {
+    transform: translateY(0);
+  }
+
+  to {
+    transform: translateY(2px);
+  }
+}
+
+@media (hover: none) {
+  .cgqid-button {
+    opacity: 0.72;
+  }
+}

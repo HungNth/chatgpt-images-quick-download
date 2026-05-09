@@ -1,0 +1,18 @@
+{
+  "name": "chatgpt-images-quick-download",
+  "version": "0.2.0",
+  "description": "Unpacked Chrome extension that adds one-click download buttons to ChatGPT Images gallery tiles.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vecyang1/chatgpt-images-quick-download.git"
+  },
+  "scripts": {
+    "test": "node --test",
+    "validate": "node scripts/validate-extension.js",
+    "visual-smoke": "node scripts/visual-smoke.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
