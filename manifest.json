@@ -2,17 +2,10 @@
   "manifest_version": 3,
   "name": "ChatGPT Images Quick Download",
   "short_name": "CG Image DL",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Adds a small transparent download button on ChatGPT generated images so each image can be saved in one click.",
   "minimum_chrome_version": "102",
   "permissions": ["activeTab", "downloads"],
-  "host_permissions": [
-    "https://chatgpt.com/*",
-    "https://*.chatgpt.com/*",
-    "https://*.oaistatic.com/*",
-    "https://*.oaiusercontent.com/*",
-    "https://*.openai.com/*"
-  ],
   "background": {
     "service_worker": "background.js"
   },

@@ -4,6 +4,7 @@
 
   const DECORATED_ATTR = "data-cgqid-decorated";
   const HOST_ATTR = "data-cgqid-host";
+  const BUTTON_BOUND_ATTR = "data-cgqid-bound";
   const DOWNLOAD_ICON = `
     <svg viewBox="0 0 24 24" aria-hidden="true" fill="none">
       <path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
@@ -41,14 +42,19 @@
     if (!isSupportedPage()) return;
 
     const root = document.querySelector("main") || document.querySelector('[role="main"]') || document.body;
-    const images = Array.from(root.querySelectorAll("img:not([" + DECORATED_ATTR + "])"));
+    const images = Array.from(root.querySelectorAll("img"));
     let decorated = 0;
 
     for (const image of images) {
-      if (!shouldDecorate(image)) continue;
-      decorateImage(image);
-      decorated += 1;
+      if (!shouldDecorate(image)) {
+        image.removeAttribute(DECORATED_ATTR);
+        continue;
+      }
+
+      if (decorateImage(image)) decorated += 1;
     }
+
+    cleanupStaleDecorations(root);
 
     if (decorated) {
       document.documentElement.dataset.cgqidReady = "true";
@@ -58,36 +64,53 @@
   function shouldDecorate(image) {
     const rect = image.getBoundingClientRect();
     const inNavigation = Boolean(image.closest("nav, aside, [role='navigation'], [aria-label*='sidebar' i]"));
-    const url = helpers.chooseBestImageUrl(image);
+    if (
+      !helpers.isLikelyTargetImage({
+        width: rect.width,
+        height: rect.height,
+        naturalWidth: image.naturalWidth,
+        naturalHeight: image.naturalHeight,
+        inNavigation
+      })
+    ) {
+      return false;
+    }
 
-    return Boolean(
-      url &&
-        helpers.isLikelyTargetImage({
-          width: rect.width,
-          height: rect.height,
-          naturalWidth: image.naturalWidth,
-          naturalHeight: image.naturalHeight,
-          inNavigation
-        })
-    );
+    const host = findHost(image);
+    const urls = helpers.rankDownloadUrls({
+      imageLike: image,
+      candidateUrls: collectCandidateUrls(host || image)
+    });
+
+    return Boolean(urls.length || findNativeOpenButton(image, host));
   }
 
   function decorateImage(image) {
     const host = findHost(image);
-    if (!host) return;
+    if (!host) return false;
 
     image.setAttribute(DECORATED_ATTR, "true");
-    const hasExistingButton = Array.from(host.children).some((child) => child.classList?.contains("cgqid-button"));
-    if (host.hasAttribute(HOST_ATTR) || hasExistingButton) {
-      return;
-    }
-
     host.setAttribute(HOST_ATTR, "true");
     host.classList.add("cgqid-host");
 
+    const buttons = Array.from(host.children).filter((child) => child.classList?.contains("cgqid-button"));
+    const reusableButton = buttons.find((button) => button.getAttribute(BUTTON_BOUND_ATTR) === "true");
+    const button = reusableButton || createDownloadButton(host);
+
+    for (const staleButton of buttons) {
+      if (staleButton !== button) staleButton.remove();
+    }
+
+    if (!reusableButton) host.appendChild(button);
+
+    return true;
+  }
+
+  function createDownloadButton(host) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "cgqid-button";
+    button.setAttribute(BUTTON_BOUND_ATTR, "true");
     button.setAttribute("aria-label", "Download this image");
     button.title = "Download this image";
     button.innerHTML = DOWNLOAD_ICON;
@@ -98,12 +121,43 @@
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation();
+        const image = findCurrentImageForHost(host);
+        if (!image) {
+          showToast("No downloadable image URL found.");
+          return;
+        }
+
         await downloadImage(image, button);
       },
       true
     );
 
-    host.appendChild(button);
+    return button;
+  }
+
+  function cleanupStaleDecorations(root) {
+    const hosts = Array.from(root.querySelectorAll(`[${HOST_ATTR}]`));
+
+    for (const host of hosts) {
+      if (!(host instanceof HTMLElement)) continue;
+
+      const image = findCurrentImageForHost(host);
+      if (image) continue;
+
+      for (const button of Array.from(host.children)) {
+        if (button.classList?.contains("cgqid-button")) button.remove();
+      }
+
+      host.removeAttribute(HOST_ATTR);
+      host.classList.remove("cgqid-host");
+    }
+  }
+
+  function findCurrentImageForHost(host) {
+    if (!host) return null;
+
+    const images = Array.from(host.querySelectorAll?.("img") || []);
+    return images.find((candidate) => shouldDecorate(candidate)) || null;
   }
 
   function findHost(image) {
@@ -130,26 +184,29 @@
   }
 
   async function downloadImage(image, button) {
-    const host = image.closest(`[${HOST_ATTR}]`) || findHost(image);
+    const initialHost = image.closest(`[${HOST_ATTR}]`) || findHost(image);
+    const targetImage = findCurrentImageForHost(initialHost) || image;
+    const host = targetImage.closest(`[${HOST_ATTR}]`) || initialHost || findHost(targetImage);
     const urls = helpers.rankDownloadUrls({
-      imageLike: image,
-      candidateUrls: collectCandidateUrls(host || image)
+      imageLike: targetImage,
+      candidateUrls: collectCandidateUrls(host || targetImage)
     });
-    if (!urls.length) {
-      showToast("No downloadable image URL found.");
-      return;
-    }
 
     button?.classList.add("cgqid-busy");
 
     try {
-      const nativeDownloaded = await downloadViaNativeViewer(image, host);
+      const nativeDownloaded = await downloadViaNativeViewer(targetImage, host);
       if (nativeDownloaded) {
         showToast("Full-size image download started.");
         return;
       }
 
-      const index = getVisibleTargetImages().indexOf(image) + 1 || 1;
+      if (!urls.length) {
+        showToast("No downloadable image URL found.");
+        return;
+      }
+
+      const index = getVisibleTargetImages().indexOf(targetImage) + 1 || 1;
 
       for (const url of urls) {
         const filename = helpers.buildDownloadFilename({ url, index });
@@ -173,17 +230,23 @@
     const openButton = findNativeOpenButton(image, host);
     if (!openButton) return false;
 
+    const existingRoots = new Set(findNativeViewerRoots());
     openButton.click();
 
-    const saveButton = await waitForElement(findNativeSaveButton, 5000);
+    const viewerRoot = await waitForElement(() => {
+      return findNativeViewerRoots().find((root) => !existingRoots.has(root)) || null;
+    }, 5000);
+    if (!viewerRoot) return false;
+
+    const saveButton = await waitForElement(() => findNativeSaveButton(viewerRoot), 3000);
     if (!saveButton) {
-      closeNativeViewer();
+      closeNativeViewer(viewerRoot);
       return false;
     }
 
     saveButton.click();
     await wait(1200);
-    closeNativeViewer();
+    closeNativeViewer(viewerRoot);
 
     return true;
   }
@@ -212,18 +275,61 @@
     return null;
   }
 
-  function findNativeSaveButton() {
-    return Array.from(document.querySelectorAll("button")).find((button) => {
-      return !button.disabled && !button.classList.contains("cgqid-button") && helpers.isNativeSaveControl(button);
+  function findNativeSaveButton(viewerRoot) {
+    const candidates = Array.from(viewerRoot?.querySelectorAll?.("button") || []).filter((button) => {
+      return (
+        !button.disabled &&
+        !button.classList.contains("cgqid-button") &&
+        isVisibleElement(button) &&
+        helpers.isNativeSaveControl(button)
+      );
     });
+
+    return candidates.length === 1 ? candidates[0] : null;
   }
 
-  function closeNativeViewer() {
-    const closeButton = Array.from(document.querySelectorAll("button")).find((button) => {
-      return !button.disabled && helpers.isNativeCloseViewerControl(button);
+  function closeNativeViewer(viewerRoot) {
+    const closeButton = Array.from(viewerRoot?.querySelectorAll?.("button") || []).find((button) => {
+      return !button.disabled && isVisibleElement(button) && helpers.isNativeCloseViewerControl(button);
     });
 
     closeButton?.click();
+  }
+
+  function findNativeViewerRoots() {
+    const saveButtons = Array.from(document.querySelectorAll("button")).filter((button) => {
+      return !button.disabled && isVisibleElement(button) && helpers.isNativeSaveControl(button);
+    });
+
+    return helpers.uniqueElements(saveButtons.map(findDialogLikeRoot).filter(Boolean)).filter(isVisibleElement);
+  }
+
+  function findDialogLikeRoot(element) {
+    let node = element?.parentElement;
+
+    while (node && node !== document.body) {
+      const role = node.getAttribute("role");
+      const rect = node.getBoundingClientRect();
+      const style = getComputedStyle(node);
+      const coversViewport =
+        style.position === "fixed" && rect.width >= innerWidth * 0.35 && rect.height >= innerHeight * 0.35;
+
+      if (role === "dialog" || node.getAttribute("aria-modal") === "true" || coversViewport) {
+        return node;
+      }
+
+      node = node.parentElement;
+    }
+
+    return null;
+  }
+
+  function isVisibleElement(element) {
+    if (!(element instanceof HTMLElement)) return false;
+
+    const rect = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
+    return rect.width > 0 && rect.height > 0 && style.visibility !== "hidden" && style.display !== "none";
   }
 
   function waitForElement(getElement, timeout = 3000) {

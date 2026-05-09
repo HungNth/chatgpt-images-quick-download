@@ -39,6 +39,13 @@
     "txt",
     "xml"
   ]);
+  const MAX_DATA_IMAGE_URL_LENGTH = 2 * 1024 * 1024;
+  const TRUSTED_IMAGE_HOSTS = new Set(["chatgpt.com"]);
+  const TRUSTED_IMAGE_HOST_SUFFIXES = [
+    ".chatgpt.com",
+    ".oaistatic.com",
+    ".oaiusercontent.com"
+  ];
 
   function parseSrcset(srcset) {
     if (!srcset || typeof srcset !== "string") return [];
@@ -175,14 +182,15 @@
 
   function isPossiblyDownloadableImageUrl(url) {
     if (!url || typeof url !== "string") return false;
-    if (/^data:image\//i.test(url)) return true;
-    if (url.startsWith("blob:")) return true;
+    if (/^data:image\//i.test(url)) return url.length <= MAX_DATA_IMAGE_URL_LENGTH;
+    if (url.startsWith("blob:")) return isTrustedBlobUrl(url);
 
     try {
       const parsed = new URL(url, "https://chatgpt.com");
       const pathname = parsed.pathname.toLowerCase();
       const extension = pathname.match(/\.([a-z0-9]+)$/)?.[1] || "";
 
+      if (!isTrustedImageHost(parsed.hostname)) return false;
       if (parsed.hostname === "w3.org" || parsed.hostname.endsWith(".w3.org")) return false;
       if (NON_IMAGE_EXTENSIONS.has(extension)) return false;
       if (pathname === "/backend-api/e") return false;
@@ -194,6 +202,15 @@
     } catch {
       return !/\.(?:css|html?|js|json|map|mjs|txt|xml)(?:[?#]|$)/i.test(url);
     }
+  }
+
+  function isTrustedImageHost(hostname) {
+    const normalized = String(hostname || "").toLowerCase();
+    return TRUSTED_IMAGE_HOSTS.has(normalized) || TRUSTED_IMAGE_HOST_SUFFIXES.some((suffix) => normalized.endsWith(suffix));
+  }
+
+  function isTrustedBlobUrl(url) {
+    return /^blob:https:\/\/chatgpt\.com(?::443)?\//i.test(url);
   }
 
   function isCandidateUrlAttribute(name, value = "") {
@@ -325,8 +342,10 @@
     isNativeOpenImageControl,
     isNativeSaveControl,
     isSupportedChatGPTSurface,
+    isTrustedBlobUrl,
     isLikelyTargetImage,
     isPossiblyDownloadableImageUrl,
+    isTrustedImageHost,
     normalizeCandidateUrl,
     parseSrcset,
     rankDownloadUrls,

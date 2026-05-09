@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0 - 2026-05-09
+
+- Hardened downloads with a narrower ChatGPT/OpenAI image URL trust boundary, background URL validation, safe filename checks, and MIME-authoritative rejection of HTML error downloads.
+- Made overlay injection self-heal after ChatGPT SPA rerenders so reused image hosts do not keep stale buttons or stale click targets.
+- Scoped native fullscreen Save clicks to the viewer/dialog layer instead of document-wide button matching.
+- Removed broad host permissions from the extension manifest.
+- Added deterministic release packaging, checksum generation, stronger manifest validation, and GitHub CI/release workflows.
+
 ## 0.3.0 - 2026-05-09
 
 - Added hover download buttons for generated images inside normal ChatGPT conversation pages (`/c/...`), not only the Images gallery.

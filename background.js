@@ -1,3 +1,11 @@
+if (typeof importScripts === "function" && !globalThis.ChatGPTImagesDownloader) {
+  importScripts("src/imageTargets.js");
+}
+
+const helpers = globalThis.ChatGPTImagesDownloader;
+const SAFE_FILENAME_PATTERN = /^chatgpt-image-\d{8}-\d{6}-\d{3}\.(?:png|jpe?g|webp|gif|avif)$/i;
+const GENERIC_DOWNLOAD_MIME_TYPES = new Set(["application/octet-stream", "binary/octet-stream"]);
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (!message || message.type !== "CGQID_DOWNLOAD") return false;
 
@@ -7,12 +15,20 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return false;
   }
 
+  if (!isSupportedSender(_sender)) {
+    sendResponse({ ok: false, error: "Downloads are only allowed from supported ChatGPT pages." });
+    return false;
+  }
+
   downloadAndWait(url, filename).then(sendResponse);
 
   return true;
 });
 
 async function downloadAndWait(url, filename) {
+  const validation = validateDownloadRequest(url, filename);
+  if (!validation.ok) return validation;
+
   const downloadId = await new Promise((resolve) => {
     chrome.downloads.download(
       {
@@ -30,6 +46,32 @@ async function downloadAndWait(url, filename) {
   }
 
   return waitForDownload(downloadId.id);
+}
+
+function validateDownloadRequest(url, filename) {
+  if (!helpers?.isPossiblyDownloadableImageUrl?.(url)) {
+    return { ok: false, error: "Image URL is not allowed." };
+  }
+
+  if (!/^https?:\/\//i.test(url)) {
+    return { ok: false, error: "Background downloads require an http(s) image URL." };
+  }
+
+  if (!SAFE_FILENAME_PATTERN.test(String(filename || ""))) {
+    return { ok: false, error: "Unsafe download filename." };
+  }
+
+  return { ok: true };
+}
+
+function isSupportedSender(sender) {
+  if (!sender?.tab?.url) return true;
+
+  try {
+    return Boolean(helpers?.isSupportedChatGPTSurface?.(new URL(sender.tab.url)));
+  } catch {
+    return false;
+  }
 }
 
 function waitForDownload(downloadId) {
@@ -84,6 +126,7 @@ function isImageDownload(download) {
   const filename = String(download?.filename || download?.url || "").toLowerCase();
 
   if (mime.startsWith("image/")) return true;
+  if (mime && !GENERIC_DOWNLOAD_MIME_TYPES.has(mime)) return false;
   return /\.(?:png|jpe?g|webp|gif|avif)(?:[?#].*)?$/.test(filename);
 }
 

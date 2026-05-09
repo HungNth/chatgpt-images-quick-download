@@ -1,0 +1,29 @@
+name: Bug report
+description: Report a problem with the download overlay or saved file
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe what you expected and what actually happened.
+    validations:
+      required: true
+  - type: input
+    id: page
+    attributes:
+      label: ChatGPT page type
+      placeholder: /images or /c/...
+    validations:
+      required: true
+  - type: input
+    id: chrome-version
+    attributes:
+      label: Chrome version
+      placeholder: "Example: 124.0.6367.119"
+  - type: textarea
+    id: checks
+    attributes:
+      label: Checks tried
+      description: Mention whether reload, Rescan, or reinstalling the unpacked extension helped.

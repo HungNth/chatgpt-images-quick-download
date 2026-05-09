@@ -5,16 +5,27 @@ const os = require("node:os");
 const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
-const chrome = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-const css = fs.readFileSync(path.join(root, "content.css"), "utf8");
-const outDir = path.join(root, "docs");
-const htmlPath = path.join(os.tmpdir(), "chatgpt-images-quick-download-visual-smoke.html");
-const screenshotPath = path.join(outDir, "overlay-visual-smoke.png");
 
-assert(fs.existsSync(chrome), "Google Chrome binary was not found.");
-fs.mkdirSync(outDir, { recursive: true });
+function findChromeExecutable({
+  env = process.env,
+  platform = process.platform,
+  existsSync = fs.existsSync
+} = {}) {
+  const candidates = [
+    env.CHROME_BIN,
+    env.GOOGLE_CHROME_SHIM,
+    platform === "darwin" ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" : "",
+    platform === "linux" ? "/usr/bin/google-chrome" : "",
+    platform === "linux" ? "/usr/bin/google-chrome-stable" : "",
+    platform === "linux" ? "/usr/bin/chromium" : "",
+    platform === "linux" ? "/usr/bin/chromium-browser" : ""
+  ].filter(Boolean);
 
-const html = `<!doctype html>
+  return candidates.find((candidate) => existsSync(candidate)) || "";
+}
+
+function buildVisualSmokeHtml(css) {
+  return `<!doctype html>
 <html>
   <head>
     <meta charset="utf-8">
@@ -105,30 +116,55 @@ const html = `<!doctype html>
     </script>
   </body>
 </html>`;
+}
 
-fs.writeFileSync(htmlPath, html);
+function runVisualSmoke({ updateScreenshot = false } = {}) {
+  const chrome = findChromeExecutable();
+  assert(chrome, "Google Chrome or Chromium binary was not found. Set CHROME_BIN to run the visual smoke test.");
 
-const fileUrl = `file://${htmlPath}`;
-const dump = execFileSync(chrome, ["--headless=new", "--disable-gpu", "--dump-dom", fileUrl], {
-  encoding: "utf8",
-  stdio: ["ignore", "pipe", "pipe"]
-});
+  const css = fs.readFileSync(path.join(root, "content.css"), "utf8");
+  const outDir = updateScreenshot ? path.join(root, "docs") : fs.mkdtempSync(path.join(os.tmpdir(), "cgqid-smoke-"));
+  const htmlPath = path.join(os.tmpdir(), "chatgpt-images-quick-download-visual-smoke.html");
+  const screenshotPath = updateScreenshot
+    ? path.join(outDir, "overlay-visual-smoke.png")
+    : path.join(outDir, "overlay-visual-smoke.png");
 
-const resultText = dump.match(/<pre id="result">([^<]+)<\/pre>/)?.[1];
-assert(resultText, "Visual smoke page did not report layout metrics.");
-const result = JSON.parse(resultText.replaceAll("&quot;", "\""));
-assert.equal(result.ok, true, `Download button overlaps native controls: ${JSON.stringify(result)}`);
+  fs.mkdirSync(outDir, { recursive: true });
+  fs.writeFileSync(htmlPath, buildVisualSmokeHtml(css));
 
-execFileSync(
-  chrome,
-  [
-    "--headless=new",
-    "--disable-gpu",
-    "--window-size=720,620",
-    `--screenshot=${screenshotPath}`,
-    fileUrl
-  ],
-  { stdio: "ignore" }
-);
+  const fileUrl = `file://${htmlPath}`;
+  const dump = execFileSync(chrome, ["--headless=new", "--disable-gpu", "--dump-dom", fileUrl], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"]
+  });
 
-console.log(`Visual smoke passed. Screenshot: ${screenshotPath}`);
+  const resultText = dump.match(/<pre id="result">([^<]+)<\/pre>/)?.[1];
+  assert(resultText, "Visual smoke page did not report layout metrics.");
+  const result = JSON.parse(resultText.replaceAll("&quot;", "\""));
+  assert.equal(result.ok, true, `Download button overlaps native controls: ${JSON.stringify(result)}`);
+
+  execFileSync(
+    chrome,
+    [
+      "--headless=new",
+      "--disable-gpu",
+      "--window-size=720,620",
+      `--screenshot=${screenshotPath}`,
+      fileUrl
+    ],
+    { stdio: "ignore" }
+  );
+
+  return screenshotPath;
+}
+
+if (require.main === module) {
+  const screenshotPath = runVisualSmoke({ updateScreenshot: process.argv.includes("--update-screenshot") });
+  console.log(`Visual smoke passed. Screenshot: ${screenshotPath}`);
+}
+
+module.exports = {
+  buildVisualSmokeHtml,
+  findChromeExecutable,
+  runVisualSmoke
+};

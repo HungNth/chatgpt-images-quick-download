@@ -12,6 +12,7 @@ const {
   isNativeOpenImageControl,
   isNativeSaveControl,
   isSupportedChatGPTSurface,
+  isTrustedImageHost,
   isPossiblyDownloadableImageUrl,
   isLikelyTargetImage,
   rankDownloadUrls,
@@ -44,33 +45,33 @@ test("chooseBestImageUrl keeps currentSrc when no stronger candidate exists", ()
 test("chooseBestDownloadUrl prefers a nearby original asset over the rendered thumbnail", () => {
   const url = chooseBestDownloadUrl({
     imageLike: {
-      currentSrc: "https://images.example.com/file_abc.webp?width=384&quality=70",
-      src: "https://images.example.com/file_abc.webp?width=384&quality=70",
+      currentSrc: "https://images.chatgpt.com/file_abc.webp?width=384&quality=70",
+      src: "https://images.chatgpt.com/file_abc.webp?width=384&quality=70",
       srcset: ""
     },
     candidateUrls: [
-      "https://images.example.com/file_abc.webp?width=384&quality=70",
-      "https://images.example.com/file_abc.png?width=2048&quality=100",
-      "https://images.example.com/file_abc_original.png"
+      "https://images.chatgpt.com/file_abc.webp?width=384&quality=70",
+      "https://images.chatgpt.com/file_abc.png?width=2048&quality=100",
+      "https://images.chatgpt.com/file_abc_original.png"
     ]
   });
 
-  assert.equal(url, "https://images.example.com/file_abc_original.png");
+  assert.equal(url, "https://images.chatgpt.com/file_abc_original.png");
 });
 
 test("chooseBestDownloadUrl extracts full-size URL from encoded image proxy URLs", () => {
   const url = chooseBestDownloadUrl({
     imageLike: {
       currentSrc:
-        "https://chatgpt.com/_next/image?url=https%3A%2F%2Fimages.example.com%2Fthumb.webp%3Fwidth%3D512&w=640&q=75",
+        "https://chatgpt.com/_next/image?url=https%3A%2F%2Fimages.chatgpt.com%2Fthumb.webp%3Fwidth%3D512&w=640&q=75",
       srcset: ""
     },
     candidateUrls: [
-      "https://chatgpt.com/_next/image?url=https%3A%2F%2Fimages.example.com%2Fgenerated-final.png%3Fwidth%3D2048&w=2048&q=100"
+      "https://chatgpt.com/_next/image?url=https%3A%2F%2Fimages.chatgpt.com%2Fgenerated-final.png%3Fwidth%3D2048&w=2048&q=100"
     ]
   });
 
-  assert.equal(url, "https://images.example.com/generated-final.png?width=2048");
+  assert.equal(url, "https://images.chatgpt.com/generated-final.png?width=2048");
 });
 
 test("rankDownloadUrls rejects non-image backend data and expands ChatGPT estuary thumbnails", () => {
@@ -92,10 +93,43 @@ test("rankDownloadUrls rejects SVG namespace URLs from injected controls", () =>
   assert.equal(isPossiblyDownloadableImageUrl("https://www.w3.org/2000/svg"), false);
   assert.deepEqual(
     rankDownloadUrls({
-      imageLike: { currentSrc: "https://images.example.com/image.png", srcset: "" },
+      imageLike: { currentSrc: "https://images.chatgpt.com/image.png", srcset: "" },
       candidateUrls: ["http://www.w3.org/2000/svg", "https://www.w3.org/2000/svg"]
     }),
-    ["https://images.example.com/image.png"]
+    ["https://images.chatgpt.com/image.png"]
+  );
+});
+
+test("rankDownloadUrls rejects untrusted third-party image URLs", () => {
+  assert.equal(isPossiblyDownloadableImageUrl("https://tracking.example.com/pixel.png"), false);
+  assert.deepEqual(
+    rankDownloadUrls({
+      imageLike: { currentSrc: "https://tracking.example.com/rendered.png", srcset: "" },
+      candidateUrls: [
+        "https://tracking.example.com/original.png",
+        "https://chatgpt.com/backend-api/estuary/content?id=file_123&sig=trusted"
+      ]
+    }),
+    ["https://chatgpt.com/backend-api/estuary/content?id=file_123&sig=trusted"]
+  );
+});
+
+test("trusted image host checks stay narrow to ChatGPT image surfaces", () => {
+  assert.equal(isTrustedImageHost("chatgpt.com"), true);
+  assert.equal(isTrustedImageHost("images.chatgpt.com"), true);
+  assert.equal(isTrustedImageHost("static.oaistatic.com"), true);
+  assert.equal(isTrustedImageHost("files.oaiusercontent.com"), true);
+  assert.equal(isTrustedImageHost("api.openai.com"), false);
+  assert.equal(isTrustedImageHost("attacker.blob.core.windows.net"), false);
+});
+
+test("image URL validation restricts blob origin and oversized data URLs", () => {
+  assert.equal(isPossiblyDownloadableImageUrl("blob:https://chatgpt.com/7a8b"), true);
+  assert.equal(isPossiblyDownloadableImageUrl("blob:https://evil.example/7a8b"), false);
+  assert.equal(isPossiblyDownloadableImageUrl("data:image/png;base64,abc"), true);
+  assert.equal(
+    isPossiblyDownloadableImageUrl(`data:image/png;base64,${"a".repeat(2 * 1024 * 1024 + 1)}`),
+    false
   );
 });
 

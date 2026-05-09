@@ -38,8 +38,8 @@ rescanButton.addEventListener("click", async () => {
   rescanButton.disabled = true;
   try {
     renderStatus(await sendToActiveTab({ type: "CGQID_RESCAN" }));
-  } finally {
-    rescanButton.disabled = false;
+  } catch {
+    renderStatus({ isSupportedPage: false });
   }
 });
 
@@ -49,6 +49,8 @@ downloadVisibleButton.addEventListener("click", async () => {
   try {
     const result = await sendToActiveTab({ type: "CGQID_DOWNLOAD_VISIBLE" });
     statusEl.textContent = result?.downloaded ? `Started ${result.downloaded} downloads.` : "No visible images found.";
+  } catch {
+    renderStatus({ isSupportedPage: false });
   } finally {
     setTimeout(refresh, 500);
   }

@@ -1,6 +1,6 @@
 {
   "name": "chatgpt-images-quick-download",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Unpacked Chrome extension that adds one-click download buttons to ChatGPT generated images.",
   "license": "MIT",
   "repository": {
@@ -8,9 +8,13 @@
     "url": "https://github.com/vecyang1/chatgpt-images-quick-download.git"
   },
   "scripts": {
+    "check": "npm test && npm run validate && npm run visual-smoke && npm run e2e:extension && npm run package",
+    "e2e:extension": "node scripts/e2e-extension-smoke.js",
+    "package": "node scripts/package-extension.js",
     "test": "node --test",
     "validate": "node scripts/validate-extension.js",
-    "visual-smoke": "node scripts/visual-smoke.js"
+    "visual-smoke": "node scripts/visual-smoke.js",
+    "visual-smoke:update": "node scripts/visual-smoke.js --update-screenshot"
   },
   "engines": {
     "node": ">=20"
