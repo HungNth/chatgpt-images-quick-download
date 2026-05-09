@@ -1,6 +1,6 @@
 {
   "name": "chatgpt-images-quick-download",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Unpacked Chrome extension that adds one-click download buttons to ChatGPT generated images.",
   "license": "MIT",
   "repository": {

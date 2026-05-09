@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.1 - 2026-05-09
+
+- Kept the release source and CI harness aligned by running the Chrome CDP smoke test with Node's experimental WebSocket flag for Node 20 compatibility.
+
 ## 0.4.0 - 2026-05-09
 
 - Hardened downloads with a narrower ChatGPT/OpenAI image URL trust boundary, background URL validation, safe filename checks, and MIME-authoritative rejection of HTML error downloads.
