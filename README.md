@@ -71,6 +71,7 @@ scripts/e2e-extension-smoke.js
 scripts/validate-extension.js
 scripts/visual-smoke.js
 docs/overlay-visual-smoke.png
+docs/AGENT_HANDOFF.md
 ```
 
 ## Verify
