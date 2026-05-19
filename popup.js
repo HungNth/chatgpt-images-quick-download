@@ -1,6 +1,12 @@
 const statusEl = document.querySelector("#status");
 const rescanButton = document.querySelector("#rescan");
 const downloadVisibleButton = document.querySelector("#downloadVisible");
+const formatOriginalButton = document.querySelector("#formatOriginal");
+const formatJpgButton = document.querySelector("#formatJpg");
+
+const FORMAT_KEY = "downloadFormat";
+const FORMAT_ORIGINAL = "original";
+const FORMAT_JPG = "jpg";
 
 async function getActiveTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -26,6 +32,23 @@ function renderStatus(status) {
   statusEl.textContent = `${status.decoratedCount} images ready, ${status.visibleCount} visible.`;
 }
 
+function setActiveFormat(format) {
+  const isJpg = format === FORMAT_JPG;
+  formatOriginalButton.classList.toggle("active", !isJpg);
+  formatOriginalButton.setAttribute("aria-checked", String(!isJpg));
+  formatJpgButton.classList.toggle("active", isJpg);
+  formatJpgButton.setAttribute("aria-checked", String(isJpg));
+}
+
+async function loadFormat() {
+  const result = await chrome.storage.local.get(FORMAT_KEY);
+  return result[FORMAT_KEY] === FORMAT_JPG ? FORMAT_JPG : FORMAT_ORIGINAL;
+}
+
+async function saveFormat(format) {
+  await chrome.storage.local.set({ [FORMAT_KEY]: format });
+}
+
 async function refresh() {
   try {
     renderStatus(await sendToActiveTab({ type: "CGQID_GET_STATUS" }));
@@ -33,6 +56,16 @@ async function refresh() {
     renderStatus({ isSupportedPage: false });
   }
 }
+
+formatOriginalButton.addEventListener("click", async () => {
+  setActiveFormat(FORMAT_ORIGINAL);
+  await saveFormat(FORMAT_ORIGINAL);
+});
+
+formatJpgButton.addEventListener("click", async () => {
+  setActiveFormat(FORMAT_JPG);
+  await saveFormat(FORMAT_JPG);
+});
 
 rescanButton.addEventListener("click", async () => {
   rescanButton.disabled = true;
@@ -56,4 +89,9 @@ downloadVisibleButton.addEventListener("click", async () => {
   }
 });
 
-refresh();
+// Initialize
+(async () => {
+  const format = await loadFormat();
+  setActiveFormat(format);
+  refresh();
+})();

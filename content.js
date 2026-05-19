@@ -16,6 +16,34 @@
   let latestPath = location.pathname;
   let toastTimer;
 
+  async function getDownloadFormat() {
+    try {
+      const result = await chrome.storage.local.get("downloadFormat");
+      return result.downloadFormat === "jpg" ? "jpg" : "original";
+    } catch {
+      return "original";
+    }
+  }
+
+  async function convertImageToJpgBlob(url) {
+    const response = await fetch(url, { credentials: "include" });
+    if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
+
+    const sourceBlob = await response.blob();
+    const bitmap = await createImageBitmap(sourceBlob);
+
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+    const ctx = canvas.getContext("2d");
+    // Fill white background so transparent PNGs don't get black backgrounds
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, bitmap.width, bitmap.height);
+    ctx.drawImage(bitmap, 0, 0);
+    bitmap.close();
+
+    const jpgBlob = await canvas.convertToBlob({ type: "image/jpeg", quality: 0.95 });
+    return URL.createObjectURL(jpgBlob);
+  }
+
   function isSupportedPage() {
     return helpers.isSupportedChatGPTSurface(location);
   }
@@ -195,6 +223,8 @@
     button?.classList.add("cgqid-busy");
 
     try {
+      const format = await getDownloadFormat();
+
       const nativeDownloaded = await downloadViaNativeViewer(targetImage, host);
       if (nativeDownloaded) {
         showToast("Full-size image download started.");
@@ -209,10 +239,9 @@
       const index = getVisibleTargetImages().indexOf(targetImage) + 1 || 1;
 
       for (const url of urls) {
-        const filename = helpers.buildDownloadFilename({ url, index });
-        const downloaded = await tryDownloadUrl(url, filename);
+        const downloaded = await tryDownloadWithFormat(url, index, format);
         if (downloaded) {
-          showToast("Image download started.");
+          showToast(format === "jpg" ? "JPG download started." : "Image download started.");
           return;
         }
       }
@@ -370,6 +399,24 @@
     return Boolean(response?.ok);
   }
 
+  async function tryDownloadWithFormat(url, index, format) {
+    if (format === "jpg" && /^https?:\/\//i.test(url)) {
+      try {
+        const jpgBlobUrl = await convertImageToJpgBlob(url);
+        const filename = helpers.buildDownloadFilename({ url, index, formatOverride: "jpg" });
+        downloadInPage(jpgBlobUrl, filename);
+        // Revoke after a delay to allow the download to start
+        setTimeout(() => URL.revokeObjectURL(jpgBlobUrl), 30000);
+        return true;
+      } catch (error) {
+        console.warn("[ChatGPT Images Quick Download] JPG conversion failed, falling back:", error);
+      }
+    }
+
+    const filename = helpers.buildDownloadFilename({ url, index });
+    return tryDownloadUrl(url, filename);
+  }
+
   function downloadInPage(url, filename) {
     const link = document.createElement("a");
     link.href = url;
@@ -401,6 +448,7 @@
 
   async function downloadVisibleImages() {
     const images = getVisibleTargetImages();
+    const format = await getDownloadFormat();
     const urls = helpers.uniqueUrls(
       images.map((image) => {
         const host = image.closest(`[${HOST_ATTR}]`) || findHost(image);
@@ -412,12 +460,14 @@
     );
 
     for (const [index, url] of urls.entries()) {
-      const filename = helpers.buildDownloadFilename({ url, index: index + 1 });
-
-      if (url.startsWith("blob:") || url.startsWith("data:")) {
-        downloadInPage(url, filename);
-      } else {
-        await chrome.runtime.sendMessage({ type: "CGQID_DOWNLOAD", url, filename });
+      const downloaded = await tryDownloadWithFormat(url, index + 1, format);
+      if (!downloaded) {
+        const filename = helpers.buildDownloadFilename({ url, index: index + 1 });
+        if (url.startsWith("blob:") || url.startsWith("data:")) {
+          downloadInPage(url, filename);
+        } else {
+          await chrome.runtime.sendMessage({ type: "CGQID_DOWNLOAD", url, filename });
+        }
       }
 
       await wait(140);

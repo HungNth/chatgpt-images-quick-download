@@ -5,7 +5,7 @@
   "version": "0.4.1",
   "description": "Adds a small transparent download button on ChatGPT generated images so each image can be saved in one click.",
   "minimum_chrome_version": "102",
-  "permissions": ["activeTab", "downloads"],
+  "permissions": ["activeTab", "downloads", "storage"],
   "background": {
     "service_worker": "background.js"
   },

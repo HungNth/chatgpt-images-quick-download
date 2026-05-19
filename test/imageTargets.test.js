@@ -214,3 +214,23 @@ test("isLikelyTargetImage filters tiny/sidebar images and keeps gallery-sized im
     true
   );
 });
+
+test("buildDownloadFilename uses format override when provided", () => {
+  const url = "https://chatgpt.com/backend-api/estuary/content?id=file_abc";
+  const now = new Date("2026-05-19T12:00:00.000Z");
+
+  const originalFilename = buildDownloadFilename({ url, index: 1, now });
+  assert.match(originalFilename, /\.png$/);
+
+  const jpgFilename = buildDownloadFilename({ url, index: 1, now, formatOverride: "jpg" });
+  assert.match(jpgFilename, /\.jpg$/);
+  assert.equal(jpgFilename, "chatgpt-image-20260519-120000-001.jpg");
+});
+
+test("buildDownloadFilename ignores invalid format override", () => {
+  const url = "https://chatgpt.com/backend-api/estuary/content?id=file_abc";
+  const now = new Date("2026-05-19T12:00:00.000Z");
+
+  const filename = buildDownloadFilename({ url, index: 1, now, formatOverride: "bmp" });
+  assert.match(filename, /\.png$/);
+});

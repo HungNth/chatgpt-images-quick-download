@@ -271,16 +271,21 @@
     return FALLBACK_EXTENSION;
   }
 
-  function buildDownloadFilename({ url, index = 1, now = new Date() } = {}) {
+  function buildDownloadFilename({ url, index = 1, now = new Date(), formatOverride } = {}) {
     const timestamp = now
       .toISOString()
       .replace(/[-:]/g, "")
       .replace(/\.\d{3}Z$/, "")
       .replace("T", "-");
     const number = String(Math.max(1, index)).padStart(3, "0");
-    const extension = getImageExtension(url);
+    const baseExtension = getImageExtension(url);
+    const extension = isValidFormatOverride(formatOverride) ? formatOverride : baseExtension;
 
     return `chatgpt-image-${timestamp}-${number}.${extension}`;
+  }
+
+  function isValidFormatOverride(format) {
+    return typeof format === "string" && ["jpg", "png", "webp"].includes(format);
   }
 
   function uniqueUrls(urls) {

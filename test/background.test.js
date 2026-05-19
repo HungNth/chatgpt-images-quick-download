@@ -148,3 +148,27 @@ test("downloadAndWait rejects untrusted urls before Chrome starts a download", a
   assert.match(result.error, /not allowed/i);
   assert.equal(downloadCalled, false);
 });
+
+test("validateDownloadRequest accepts .jpg filenames", () => {
+  const chrome = {
+    runtime: {
+      onMessage: {
+        addListener() {}
+      }
+    },
+    downloads: {
+      onChanged: {
+        addListener() {},
+        removeListener() {}
+      }
+    }
+  };
+
+  const context = loadBackgroundWithChrome(chrome);
+  const baseUrl = "https://chatgpt.com/backend-api/estuary/content?id=file_123&sig=trusted";
+
+  assert.equal(context.validateDownloadRequest(baseUrl, "chatgpt-image-20260519-120000-001.jpg").ok, true);
+  assert.equal(context.validateDownloadRequest(baseUrl, "chatgpt-image-20260519-120000-001.png").ok, true);
+  assert.equal(context.validateDownloadRequest(baseUrl, "chatgpt-image-20260519-120000-001.jpeg").ok, true);
+  assert.equal(context.validateDownloadRequest(baseUrl, "chatgpt-image-20260519-120000-001.bmp").ok, false);
+});
