@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.2 - 2026-05-20
+
+- Added support for the new `chatgpt.com/g/...` conversation page image generation surface by recognizing the new image host and reusing the existing overlay injection and download logic.
+
 ## 0.4.1 - 2026-05-09
 
 - Kept the release source and CI harness aligned by running the Chrome CDP smoke test with Node's experimental WebSocket flag for Node 20 compatibility.

@@ -333,7 +333,7 @@
     const hostname = String(locationLike.hostname || "");
     const pathname = String(locationLike.pathname || "");
 
-    return hostname === "chatgpt.com" && (pathname.startsWith("/images") || pathname.startsWith("/c/"));
+    return hostname === "chatgpt.com" && (pathname.startsWith("/images") || pathname.startsWith("/c/") || pathname.startsWith("/g/"));
   }
 
   return {
